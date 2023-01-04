@@ -50,7 +50,7 @@ class Sim(Particles):
 
         print('Simulation initialised')
 
-    def sim_step(self, acs=None, pVT=False):
+    def sim_step(self, acs=None, pVT=False, depth=1):
 
         pressure = self.geometry.detect_collision_wall(self.particles_list)
 
@@ -67,7 +67,7 @@ class Sim(Particles):
         # acs[:,0] /= self._m
         # acs[:,1] /= self._m
 
-        self.update(acs, self.dt)
+        self.update(acs, self.dt, depth=depth)
 
         if pVT:
             self.pressure.append(pressure/self.dt)
@@ -87,8 +87,13 @@ class Sim(Particles):
         xCenter = (self.bounds['xMax'] + self.bounds['xMin'])/2
         yCenter = (self.bounds['yMax'] + self.bounds['yMin'])/2
 
+        # KDTree depth calculation
+        depth = np.log2(self.N) - 4
+        if depth < 1:
+            depth = 1
+
         def animation(i):
-            self.sim_step(acs=acs)
+            self.sim_step(acs=acs, depth=depth)
 
             points = self.get_ps()
             E_kin = self.get_energy_kinetic()
