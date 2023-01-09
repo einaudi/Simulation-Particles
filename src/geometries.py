@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import copy
 import numpy as np
 
 
@@ -12,10 +13,13 @@ class Box2D():
         self._yMin = yMin
         self._yMax = yMax
 
-        self._xLimMin = xMin - 0.1
-        self._xLimMax = xMax + 0.1
-        self._yLimMin = yMin - 0.1
-        self._yLimMax = yMax + 0.1
+        X = xMax - xMin
+        Y = yMax - yMin
+
+        self._xLimMin = xMin - 0.1*np.abs(X)
+        self._xLimMax = xMax + 0.1*np.abs(X)
+        self._yLimMin = yMin - 0.1*np.abs(Y)
+        self._yLimMax = yMax + 0.1*np.abs(Y)
 
         self._dx = (self._xMax - self._xMin) / 1e4
         self._dy = (self._yMax - self._yMin) / 1e4
@@ -35,6 +39,10 @@ class Box2D():
         Ay = self._yMax - self._yMin
 
         return Ax, Ay
+
+    def get_limits(self):
+
+        return (copy(self._xLimMin), copy(self._xLimMax)), (copy(self._yLimMin), copy(self._yLimMax))
 
     # Walls collisions and momentum
     def detect_collision_wall(self, particles_list):

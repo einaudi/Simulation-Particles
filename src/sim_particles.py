@@ -6,6 +6,7 @@ from src.particles import Particles
 from src.geometries import *
 
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import ListedColormap
 
@@ -74,12 +75,24 @@ class Sim(Particles):
             self.volume.append(self.geometry.get_volume())
             self.temperature.append(self.get_temperature())
 
-    def animate(self, acs=None, cmap='bwr', interval=1):
+    def _get_markersizes(self, ax, fig):
+
+        xLim, _ = self.geometry.get_limits()
+
+        self.geometry.plot_set_axis_limits(ax)
+        s = (ax.get_window_extent().width  / (xLim[1]-xLim[0]) * 72./fig.dpi)
+        s *= self.radius()
+        s = np.power(s, 2)
+
+        return s
+
+    # Animation
+    def animate(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4)):
 
         print('Total number of particles: ', self.N)
         print('Running simulation...')
 
-        fig = plt.figure(facecolor='black', figsize=(6,6))
+        fig = plt.figure(facecolor='black', figsize=figsize, dpi=dpi)
         ax = fig.add_subplot(111)
         ax.axis('equal')
         ax.set_facecolor('black')
@@ -91,6 +104,9 @@ class Sim(Particles):
         depth = np.log2(self.N) - 4
         if depth < 1:
             depth = 1
+
+        # Markersizes with respect to axis
+        s = self._get_markersizes(ax, fig)
 
         def animation(i):
             self.sim_step(acs=acs, depth=depth)
@@ -106,6 +122,7 @@ class Sim(Particles):
                 points[:, 0],
                 points[:, 1],
                 c=E_kin,
+                s=s,
                 cmap=cmap
             )
             ax.scatter(
@@ -117,17 +134,20 @@ class Sim(Particles):
         anim = FuncAnimation(fig, animation, interval=interval)
         plt.show()
 
-    def animate_pVT(self, acs=None, cmap='bwr', interval=1):
+    def animate_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4)):
 
         print('Total number of particles: ', self.N)
         print('Running simulation...')
 
-        fig = plt.figure(facecolor='black', figsize=(6,6))
-        ax = fig.add_subplot(211)
+        fig = plt.figure(facecolor='black', figsize=figsize, dpi=dpi)
+
+        gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
+              
+        ax = plt.subplot(gs[0])
         ax.axis('equal')
         ax.set_facecolor('black')
 
-        ax_pVT = fig.add_subplot(212)
+        ax_pVT = plt.subplot(gs[1])
         ax_pVT.set_facecolor('black')
         ax_pVT.spines['bottom'].set_color('white')
         ax_pVT.spines['top'].set_color('white') 
@@ -138,6 +158,14 @@ class Sim(Particles):
 
         xCenter = (self.bounds['xMax'] + self.bounds['xMin'])/2
         yCenter = (self.bounds['yMax'] + self.bounds['yMin'])/2
+
+         # KDTree depth calculation
+        depth = np.log2(self.N) - 4
+        if depth < 1:
+            depth = 1
+
+        # Markersizes with respect to axis
+        s = self._get_markersizes(ax, fig)
 
         def animation(i):
             self.sim_step(acs=acs, pVT=True)
@@ -154,6 +182,7 @@ class Sim(Particles):
                 points[:, 0],
                 points[:, 1],
                 c=E_kin,
+                s=s,
                 cmap=cmap
             )
             ax.scatter(
@@ -168,7 +197,8 @@ class Sim(Particles):
                 self.temperature = self.temperature[1:]
 
             p_norm = np.array(self.pressure)
-            p_norm /= np.amax(p_norm)
+            if not np.amax(p_norm) == 0:
+                p_norm /= np.amax(p_norm)
             V_norm = np.array(self.volume, dtype=float)
             V_norm /= np.amax(V_norm)
             T_norm = np.array(self.temperature)
