@@ -7,8 +7,7 @@ from src.sim_particles import Sim, cmap_temperature
 
 # Menu
 fps = 60
-dt = 1/fps
-dt_ms = dt * 1e3
+spf = 1
 
 # g = -3
 g = 0
@@ -28,7 +27,7 @@ vmax = 2.5
 
 # Initialisation
 
-sim = Sim(dt, bounds=bounds)
+sim = Sim(fps, spf, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)

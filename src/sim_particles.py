@@ -30,7 +30,7 @@ cmap_temperature = cmap_linear(blue, red, 'temperature')
 
 class Sim(Particles):
 
-    def __init__(self, dt, geometry='box', bounds={}, collisions='KDTree'):
+    def __init__(self, fps, spf=1, geometry='box', bounds={}, collisions='KDTree'):
 
         print('Initialising simulation...')
 
@@ -42,8 +42,15 @@ class Sim(Particles):
             print('Choose proper geometry!')
             quit()
 
-        self.dt = dt
+        self.fps = fps  # frames per second
+        self.spf = spf  # steps per frame
+
+        self.dt = 1/fps/spf  # s
         self.bounds = bounds
+
+        # Kinetic energy bounds for coloring
+        self._Ekin_min = 100
+        self._Ekin_max = 0
 
         self.pressure = []
         self.volume = []
@@ -51,7 +58,7 @@ class Sim(Particles):
 
         print('Simulation initialised')
 
-    def sim_step(self, acs=None, pVT=False, depth=1):
+    def sim_step_single(self, acs=None, depth=1):
 
         pressure = self.geometry.detect_collision_wall(self.particles_list)
 
@@ -70,8 +77,17 @@ class Sim(Particles):
 
         self.update(acs, self.dt, depth=depth)
 
+        return pressure
+
+    def sim_step_multi(self, acs=None, pVT=False, depth=1):
+
+        pressure = 0
+
+        for _ in range(self.spf):
+            pressure += self.sim_step_single(acs, depth)
+
         if pVT:
-            self.pressure.append(pressure/self.dt)
+            self.pressure.append(pressure/(self.dt*self.spf))
             self.volume.append(self.geometry.get_volume())
             self.temperature.append(self.get_temperature())
 
@@ -87,6 +103,36 @@ class Sim(Particles):
         return s
 
     # Animation
+    def _animation_base_function(self, axParticles, acs, depth, s, cmap, pVT=False):
+        self.sim_step_multi(acs=acs, depth=depth, pVT=pVT)
+
+        points = self.get_ps()
+
+        # Kinetic energy
+        E_kin = self.get_energy_kinetic()
+        E_min = np.amin(E_kin)
+        E_max = np.amax(E_kin)
+        if self._Ekin_min > E_min:
+            self._Ekin_min = E_min
+        if self._Ekin_max < E_max:
+            self._Ekin_max = E_max
+
+        E_kin -= self._Ekin_min
+        E_kin /= self._Ekin_max
+
+        axParticles.clear()
+        self.geometry.plot_set_axis_limits(axParticles)
+        self.geometry.plot_boundaries(axParticles)
+
+        axParticles.scatter(
+            points[:, 0],
+            points[:, 1],
+            c=E_kin,
+            s=s,
+            cmap=cmap
+        )
+
+
     def animate(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4)):
 
         print('Total number of particles: ', self.N)
@@ -109,22 +155,8 @@ class Sim(Particles):
         s = self._get_markersizes(ax, fig)
 
         def animation(i):
-            self.sim_step(acs=acs, depth=depth)
-
-            points = self.get_ps()
-            E_kin = self.get_energy_kinetic()
-
-            ax.clear()
-            self.geometry.plot_set_axis_limits(ax)
-            self.geometry.plot_boundaries(ax)
-
-            ax.scatter(
-                points[:, 0],
-                points[:, 1],
-                c=E_kin,
-                s=s,
-                cmap=cmap
-            )
+            self._animation_base_function(ax, acs, depth, s, cmap)
+            
             ax.scatter(
                 xCenter,
                 yCenter,
@@ -168,23 +200,8 @@ class Sim(Particles):
         s = self._get_markersizes(ax, fig)
 
         def animation(i):
-            self.sim_step(acs=acs, pVT=True)
-
-            points = self.get_ps()
-            E_kin = self.get_energy_kinetic()
-
-            ax.clear()
-            ax_pVT.clear()
-            self.geometry.plot_set_axis_limits(ax)
-            self.geometry.plot_boundaries(ax)
-
-            ax.scatter(
-                points[:, 0],
-                points[:, 1],
-                c=E_kin,
-                s=s,
-                cmap=cmap
-            )
+            self._animation_base_function(ax, acs, depth, s, cmap, pVT=True)
+            
             ax.scatter(
                 xCenter,
                 yCenter,
@@ -204,6 +221,7 @@ class Sim(Particles):
             T_norm = np.array(self.temperature)
             T_norm /= np.amax(T_norm)
 
+            ax_pVT.clear()
             ax_pVT.plot(p_norm, label='p')
             ax_pVT.plot(V_norm, label='V')
             ax_pVT.plot(T_norm, label='T')

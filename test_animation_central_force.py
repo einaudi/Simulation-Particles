@@ -36,8 +36,6 @@ def potential_central(x, y, x0, y0, G):
 
 # Menu
 fps = 60
-dt = 1/fps
-dt_ms = dt * 1e3
 
 # g = -3
 g = 0
@@ -66,7 +64,7 @@ G = -1
 force = lambda x, y: potential_central(x, y, p0[0], p0[1], G)
 
 # Initialisation
-sim = Sim(dt, bounds=bounds)
+sim = Sim(fps, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
