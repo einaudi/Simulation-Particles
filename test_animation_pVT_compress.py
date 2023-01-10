@@ -5,7 +5,9 @@ import numpy as np
 from src.sim_particles import Sim, cmap_temperature
 
 
-def compress_cos(t, f, c, bounds, axis='x'):
+def compress_cos(t, f, c, geometry, axis='x'):
+
+    bounds = geometry.get_initial_boundaries()
 
     if axis == 'x':
         xmax = 'xMax'
@@ -33,11 +35,12 @@ def compress_cos(t, f, c, bounds, axis='x'):
             A*np.cos(2*np.pi*f*t) + offset
         ]
 
-    return ret
+    geometry.change_boundaries(*ret)
 
 
 # Menu
 fps = 60
+spf = 2
 
 f = 0.05
 compression = 0.1
@@ -58,11 +61,13 @@ bounds = {
 vmin = -2.5
 vmax = 2.5
 
-compress_func = lambda t: compress_cos(t, f, compression, bounds)
+compress_func = lambda t, geometry, _: compress_cos(t, f, compression, geometry)
 
 # Initialisation
 
-sim = Sim(fps, bounds=bounds)
+sim = Sim(fps, spf, bounds=bounds)
+
+sim.add_time_dependent_function(compress_func)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
@@ -79,4 +84,4 @@ for i in range(N):
 acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
-sim.animate_pVT_compress(acs, cmap=cmap_temperature, compression_func=compress_func)
+sim.animate_pVT(acs, cmap=cmap_temperature)

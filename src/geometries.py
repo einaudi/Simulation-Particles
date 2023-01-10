@@ -51,7 +51,21 @@ class Box2D():
 
     def get_boundaries(self):
 
-        return (copy(self._xMin), copy(self._xMax)), (copy(self._yMin), copy(self._yMax))
+        return {
+            'xMin': copy(self._xMin),
+            'xMax': copy(self._xMax),
+            'yMin': copy(self._yMin),
+            'yMax': copy(self._yMax)
+        }
+
+    def get_initial_boundaries(self):
+
+        return {
+            'xMin': copy(self._xMin0),
+            'xMax': copy(self._xMax0),
+            'yMin': copy(self._yMin0),
+            'yMax': copy(self._yMax0)
+        }
 
     def change_boundaries(self, xMin, xMax, yMin, yMax):
 

@@ -246,7 +246,6 @@ class Particles():
         for p in self.particles_list:
             ret += p.volume()
 
-        print(ret)
         return ret
 
     # get attributes

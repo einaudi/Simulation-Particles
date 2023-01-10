@@ -36,12 +36,13 @@ def potential_central(x, y, x0, y0, G):
 
 # Menu
 fps = 60
+spf = 20
 
 # g = -3
 g = 0
 
-N = 8
-r = 0.05
+N = 10
+r = 0.1
 
 bounds = {
     'xMin': -3,
@@ -57,14 +58,14 @@ p0 = np.array([
     (bounds['xMax'] + bounds['xMin'])/2,
     (bounds['yMax'] + bounds['yMin'])/2
 ])
-G = -1
+G = -0.1
 
 # force = lambda p: force_central(p, p0, G)
 # force = lambda p: force_central_limited(p, p0, G, 0.1)
 force = lambda x, y: potential_central(x, y, p0[0], p0[1], G)
 
 # Initialisation
-sim = Sim(fps, bounds=bounds)
+sim = Sim(fps, spf, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
