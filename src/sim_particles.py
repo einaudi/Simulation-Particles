@@ -58,7 +58,7 @@ class Sim(Particles):
 
         print('Simulation initialised')
 
-    def sim_step_single(self, acs=None, depth=1):
+    def sim_step_single(self, acs=None, depth=1, **kwargs):
 
         pressure = self.geometry.detect_collision_wall(self.particles_list)
 
@@ -75,16 +75,16 @@ class Sim(Particles):
         # acs[:,0] /= self._m
         # acs[:,1] /= self._m
 
-        self.update(acs, self.dt, depth=depth)
+        self.update(acs, self.dt, depth=depth, **kwargs)
 
         return pressure
 
-    def sim_step_multi(self, acs=None, pVT=False, depth=1):
+    def sim_step_multi(self, acs=None, pVT=False, depth=1, **kwargs):
 
         pressure = 0
 
         for _ in range(self.spf):
-            pressure += self.sim_step_single(acs, depth)
+            pressure += self.sim_step_single(acs, depth, **kwargs)
 
         if pVT:
             self.pressure.append(pressure/(self.dt*self.spf))
@@ -103,8 +103,9 @@ class Sim(Particles):
         return s
 
     # Animation
-    def _animation_base_function(self, axParticles, acs, depth, s, cmap, pVT=False):
-        self.sim_step_multi(acs=acs, depth=depth, pVT=pVT)
+    def _animation_base_function(self, axParticles, acs, depth, s, cmap, pVT=False, **kwargs):
+
+        self.sim_step_multi(acs=acs, depth=depth, pVT=pVT, **kwargs)
 
         points = self.get_ps()
 
@@ -132,10 +133,10 @@ class Sim(Particles):
             cmap=cmap
         )
 
-
     def animate(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4)):
 
         print('Total number of particles: ', self.N)
+        print('Particle packing: {:.4f} %'.format(self.collective_volume()/self.geometry.get_volume()*100))
         print('Running simulation...')
 
         fig = plt.figure(facecolor='black', figsize=figsize, dpi=dpi)
@@ -166,7 +167,7 @@ class Sim(Particles):
         anim = FuncAnimation(fig, animation, interval=interval)
         plt.show()
 
-    def animate_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4)):
+    def animate_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4), **kwargs):
 
         print('Total number of particles: ', self.N)
         print('Running simulation...')
@@ -200,7 +201,7 @@ class Sim(Particles):
         s = self._get_markersizes(ax, fig)
 
         def animation(i):
-            self._animation_base_function(ax, acs, depth, s, cmap, pVT=True)
+            self._animation_base_function(ax, acs, depth, s, cmap, pVT=True, **kwargs)
             
             ax.scatter(
                 xCenter,
@@ -208,7 +209,7 @@ class Sim(Particles):
                 c='white'
             )
 
-            while len(self.pressure) > 200:
+            while len(self.pressure) > 1000:
                 self.pressure = self.pressure[1:]
                 self.volume = self.volume[1:]
                 self.temperature = self.temperature[1:]
@@ -219,13 +220,83 @@ class Sim(Particles):
             V_norm = np.array(self.volume, dtype=float)
             V_norm /= np.amax(V_norm)
             T_norm = np.array(self.temperature)
+            T_norm -= np.amin(T_norm)
             T_norm /= np.amax(T_norm)
 
             ax_pVT.clear()
             ax_pVT.plot(p_norm, label='p')
             ax_pVT.plot(V_norm, label='V')
             ax_pVT.plot(T_norm, label='T')
-            ax_pVT.legend(loc=0)
+            # ax_pVT.legend(loc=0)
+
+        anim = FuncAnimation(fig, animation, interval=interval)
+        plt.show()
+
+    def animate_pVT_compress(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4), compression_func=None):
+
+        print('Total number of particles: ', self.N)
+        print('Running simulation...')
+
+        fig = plt.figure(facecolor='black', figsize=figsize, dpi=dpi)
+
+        gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
+              
+        ax = plt.subplot(gs[0])
+        ax.axis('equal')
+        ax.set_facecolor('black')
+
+        ax_pVT = plt.subplot(gs[1])
+        ax_pVT.set_facecolor('black')
+        ax_pVT.spines['bottom'].set_color('white')
+        ax_pVT.spines['top'].set_color('white') 
+        ax_pVT.spines['right'].set_color('white')
+        ax_pVT.spines['left'].set_color('white')
+        ax_pVT.tick_params(axis='x', colors='white')
+        ax_pVT.tick_params(axis='y', colors='white')
+
+        xCenter = (self.bounds['xMax'] + self.bounds['xMin'])/2
+        yCenter = (self.bounds['yMax'] + self.bounds['yMin'])/2
+
+         # KDTree depth calculation
+        depth = np.log2(self.N) - 4
+        if depth < 1:
+            depth = 1
+
+        # Markersizes with respect to axis
+        s = self._get_markersizes(ax, fig)
+
+        def animation(i):
+            if compression_func is not None:
+                t = i*self.dt
+                self.geometry.change_boundaries(*compression_func(t))
+
+            self._animation_base_function(ax, acs, depth, s, cmap, pVT=True)
+            
+            ax.scatter(
+                xCenter,
+                yCenter,
+                c='white'
+            )
+
+            while len(self.pressure) > 1000:
+                self.pressure = self.pressure[1:]
+                self.volume = self.volume[1:]
+                self.temperature = self.temperature[1:]
+
+            p_norm = np.array(self.pressure)
+            if not np.amax(p_norm) == 0:
+                p_norm /= np.amax(p_norm)
+            V_norm = np.array(self.volume, dtype=float)
+            V_norm /= np.amax(V_norm)
+            T_norm = np.array(self.temperature)
+            T_norm -= np.amin(T_norm)
+            T_norm /= np.amax(T_norm)
+
+            ax_pVT.clear()
+            ax_pVT.plot(p_norm, label='p')
+            ax_pVT.plot(V_norm, label='V')
+            ax_pVT.plot(T_norm, label='T')
+            # ax_pVT.legend(loc=0)
 
         anim = FuncAnimation(fig, animation, interval=interval)
         plt.show()

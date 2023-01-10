@@ -11,14 +11,16 @@ fps = 60
 # g = -3
 g = 0
 
+Cr = 1
+
 N = 100
 r = 0.05
 
 bounds = {
     'xMin': 0,
-    'xMax': 5,
+    'xMax': 2.5,
     'yMin': 0,
-    'yMax': 5
+    'yMax': 2.5
 }
 
 vmin = -2.5
@@ -30,7 +32,7 @@ sim = Sim(fps, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
-    ps_particle[0] = ps_particle[0]*(bounds['xMax']-bounds['xMin'])+bounds['xMin']
+    ps_particle[0] = ps_particle[0]*(0.5*bounds['xMax']-bounds['xMin'])+bounds['xMin']
     ps_particle[1] = ps_particle[1]*(bounds['yMax']-bounds['yMin'])+bounds['yMin']
     sim.add_particle(
         ps_particle,
@@ -43,4 +45,4 @@ for i in range(N):
 acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
-sim.animate_pVT(acs, cmap=cmap_temperature)
+sim.animate_pVT(acs, cmap=cmap_temperature, Cr=Cr)

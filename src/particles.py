@@ -62,6 +62,39 @@ def elastic_collision(p1, p2):
 
         return v1, v2
 
+def general_collision(p1, p2, Cr=1):
+
+    v2 = p2.get_vs()
+    v1 = p1.get_vs()
+
+    n = p2.get_ps() - p1.get_ps()
+    n /= norm(n)
+    
+    t = np.random.random(p1.dim)
+    t -= np.dot(t, n) * n
+    t /= norm(t)
+
+    v2n = np.dot(v2, n) * n
+    v2t = np.dot(v2, t) * t
+    v1n = np.dot(v1, n) * n
+    v1t = np.dot(v1, t) * t
+
+    # check if particles are moving apart
+    if np.dot(v2n - v1n, n) > 0:
+        return v1, v2
+    else:
+        v1n_after = Cr*p2.mass()*(v2n-v1n) + p1.mass()*v1n + p2.mass()*v2n
+        v1n_after /= p2.mass()+p1.mass()
+
+        v2n_after = Cr*p1.mass()*(v1n-v2n) + p1.mass()*v1n + p2.mass()*v2n
+        v2n_after /= p2.mass()+p1.mass()
+
+        v1 = v1n_after + v1t
+        v2 = v2n_after + v2t
+
+        return v1, v2
+
+
 
 class Particle():
 
@@ -102,6 +135,13 @@ class Particle():
     def radius(self):
 
         return copy(self._r)
+
+    def volume(self):
+
+        if self.dim == 2:
+            return np.pi*self._r**2
+        elif self.dim == 3:
+            return 4./3*np.pi*self._r**3
 
     # get attributes
     def get_ps(self):
@@ -200,6 +240,15 @@ class Particles():
 
         return ret
 
+    def collective_volume(self):
+
+        ret = 0
+        for p in self.particles_list:
+            ret += p.volume()
+
+        print(ret)
+        return ret
+
     # get attributes
     def get_ps(self):
 
@@ -256,7 +305,7 @@ class Particles():
             p.shift_vs(dv[i, :])
     
     # collision handling
-    def _detect_collisions_KDTree(self, *args, **kwargs):
+    def _detect_collisions_KDTree(self, *args, Cr=1, **kwargs):
 
         tree = KDTree(self)
         if 'depth' in kwargs.keys():
@@ -272,7 +321,8 @@ class Particles():
                     continue
                 if check_particle_overlap(p, pnn):
                     # print('x')
-                    v, vnn = elastic_collision(p, pnn)
+                    # v, vnn = elastic_collision(p, pnn)
+                    v, vnn = general_collision(p, pnn, Cr)
                     p.change_vs(v)
                     pnn.change_vs(vnn)
 

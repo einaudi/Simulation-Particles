@@ -12,14 +12,14 @@ spf = 1
 # g = -3
 g = 0
 
-N = 60
+N = 100
 r = 0.05
 
 bounds = {
     'xMin': 0,
-    'xMax': 5,
+    'xMax': 2.5,
     'yMin': 0,
-    'yMax': 5
+    'yMax': 2.5
 }
 
 vmin = -2.5

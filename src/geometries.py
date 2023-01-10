@@ -13,6 +13,11 @@ class Box2D():
         self._yMin = yMin
         self._yMax = yMax
 
+        self._xMin0 = xMin
+        self._xMax0 = xMax
+        self._yMin0 = yMin
+        self._yMax0 = yMax
+
         X = xMax - xMin
         Y = yMax - yMin
 
@@ -43,6 +48,17 @@ class Box2D():
     def get_limits(self):
 
         return (copy(self._xLimMin), copy(self._xLimMax)), (copy(self._yLimMin), copy(self._yLimMax))
+
+    def get_boundaries(self):
+
+        return (copy(self._xMin), copy(self._xMax)), (copy(self._yMin), copy(self._yMax))
+
+    def change_boundaries(self, xMin, xMax, yMin, yMax):
+
+        self._xMin = xMin
+        self._xMax = xMax
+        self._yMin = yMin
+        self._yMax = yMax
 
     # Walls collisions and momentum
     def detect_collision_wall(self, particles_list):
