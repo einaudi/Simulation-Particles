@@ -7,6 +7,7 @@ from src.sim_particles import Sim, cmap_temperature
 
 # Menu
 fps = 60
+spf = 1
 
 # g = -3
 g = 0
@@ -28,7 +29,7 @@ vmax = 2.5
 
 # Initialisation
 
-sim = Sim(fps, bounds=bounds)
+sim = Sim(fps, spf, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
@@ -45,4 +46,4 @@ for i in range(N):
 acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
-sim.animate_pVT(acs, cmap=cmap_temperature, Cr=Cr)
+sim.animate_blit_pVT(acs, cmap=cmap_temperature, Cr=Cr, interval=1)

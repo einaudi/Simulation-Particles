@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from copy import copy
+from collections import namedtuple
 
 from src.particles import Particles
 from src.geometries import *
@@ -182,6 +183,7 @@ class Sim(Particles):
         E_kin /= self._Ekin_max
 
         axParticles.clear()
+        # Geometry plots
         self.geometry.plot_set_axis_limits(axParticles)
         self.geometry.plot_boundaries(axParticles)
 
@@ -231,4 +233,133 @@ class Sim(Particles):
             # axes['pVT'].legend(loc=0)
 
         anim = FuncAnimation(fig, animation, interval=interval)
+        plt.show()
+
+    def animate_blit(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4), **kwargs):
+
+        # Canvas initialisation
+        fig, axes, s, depth = self._animation_init_base_function(figsize=figsize, dpi=dpi)
+        # Geometry plots
+        self.geometry.plot_set_axis_limits(axes['main'])
+        self.geometry.plot_boundaries(axes['main'])
+
+        # Animation artists
+        Artists = namedtuple('Artists', ('particles'))
+        artists = Artists(
+            axes['main'].scatter(np.zeros(self.N), np.zeros(self.N), animated=True)
+        )
+        artists.particles.set_cmap(cmap)
+
+        def update_artists(points, artists):
+
+            self._sim_step_multi(acs=acs, depth=depth)
+
+            points = self.get_ps()
+
+            # Kinetic energy
+            E_kin = self.get_energy_kinetic()
+            E_min = np.amin(E_kin)
+            E_max = np.amax(E_kin)
+            if self._Ekin_min > E_min:
+                self._Ekin_min = E_min
+            if self._Ekin_max < E_max:
+                self._Ekin_max = E_max
+
+            E_kin -= self._Ekin_min
+            E_kin /= self._Ekin_max
+            c = artists.particles.to_rgba(E_kin)
+
+            artists.particles.set_offsets(points)
+            artists.particles.set_sizes(s)
+            artists.particles.set_facecolor(c)
+
+            return artists
+
+
+        anim = FuncAnimation(
+            fig=fig,
+            func=lambda points: update_artists(points, artists),
+            repeat_delay=5000,
+            interval=interval,
+            blit=True
+        )
+        plt.show()
+
+    def animate_blit_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4), **kwargs):
+
+        # Canvas initialisation
+        fig, axes, s, depth = self._animation_init_base_function(figsize=figsize, dpi=dpi, mode='pVT')
+        # Geometry plots
+        self.geometry.plot_set_axis_limits(axes['main'])
+        self.geometry.plot_boundaries(axes['main'])
+
+        # pVT axis settings
+        axes['pVT'].set_xlim(0, 1000)
+        axes['pVT'].set_ylim(-0.1, 1.1)
+
+        # Animation artists
+        Artists = namedtuple('Artists', ('particles', 'pressure', 'volume', 'temperature'))
+        artists = Artists(
+            axes['main'].scatter([], [], animated=True),
+            axes['pVT'].plot([], [], animated=True, label='p')[0],
+            axes['pVT'].plot([], [], animated=True, label='V')[0],
+            axes['pVT'].plot([], [], animated=True, label='T')[0]
+        )
+        artists.particles.set_cmap(cmap)
+
+        def update_artists(points, artists):
+
+            self._sim_step_multi(acs=acs, depth=depth, pVT=True)
+
+            points = self.get_ps()
+
+            # Kinetic energy
+            E_kin = self.get_energy_kinetic()
+            E_min = np.amin(E_kin)
+            E_max = np.amax(E_kin)
+            if self._Ekin_min > E_min:
+                self._Ekin_min = E_min
+            if self._Ekin_max < E_max:
+                self._Ekin_max = E_max
+
+            E_kin -= self._Ekin_min
+            E_kin /= self._Ekin_max
+            c = artists.particles.to_rgba(E_kin)
+
+            artists.particles.set_offsets(points)
+            artists.particles.set_sizes(s)
+            artists.particles.set_facecolor(c)
+
+            # pVT
+            while len(self._pressure) > 1000:
+                self._pressure = self._pressure[1:]
+                self._volume = self._volume[1:]
+                self._temperature = self._temperature[1:]
+
+            p_norm = np.array(self._pressure)
+            if not np.amax(p_norm) == 0:
+                p_norm /= np.amax(p_norm)
+            V_norm = np.array(self._volume, dtype=float)
+            V_norm /= np.amax(V_norm)
+            T_norm = np.array(self._temperature)
+            # T_norm -= np.amin(T_norm)
+            T_norm /= np.amax(T_norm)
+
+            n = range(p_norm.size)
+
+            artists.pressure.set_data(n, p_norm)
+            artists.volume.set_data(n, V_norm)
+            artists.temperature.set_data(n, T_norm)
+            # axes['pVT'].legend(loc=0)
+
+            return artists
+
+
+        anim = FuncAnimation(
+            fig=fig,
+            func=lambda points: update_artists(points, artists),
+            repeat_delay=5000,
+            interval=interval,
+            blit=True
+        )
         plt.show()

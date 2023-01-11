@@ -44,4 +44,5 @@ for i in range(N):
 acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
-sim.animate(acs, cmap=cmap_temperature)
+# sim.animate(acs, cmap=cmap_temperature)
+sim.animate_blit(cmap=cmap_temperature)
