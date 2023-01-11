@@ -14,7 +14,7 @@ g = 0
 
 Cr = 1
 
-N = 100
+N = 200
 r = 0.05
 
 bounds = {
@@ -29,7 +29,7 @@ vmax = 2.5
 
 # Initialisation
 
-sim = Sim(fps, spf, bounds=bounds)
+sim = Sim(fps, spf, T=10, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
@@ -46,4 +46,7 @@ for i in range(N):
 acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
-sim.animate_blit_pVT(acs, cmap=cmap_temperature, Cr=Cr, interval=1)
+# sim.animate_pVT(acs, cmap=cmap_temperature, Cr=Cr, interval=1)
+# sim.animate_blit_pVT(acs, cmap=cmap_temperature, Cr=Cr, interval=1)
+
+sim.save_animation('./test_pVT.mp4', acs, cmap=cmap_temperature, pVT=True)

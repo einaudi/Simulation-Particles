@@ -12,7 +12,7 @@ spf = 1
 # g = -3
 g = 0
 
-N = 100
+N = 200
 r = 0.05
 
 bounds = {
@@ -27,7 +27,7 @@ vmax = 2.5
 
 # Initialisation
 
-sim = Sim(fps, spf, bounds=bounds)
+sim = Sim(fps, spf, T=10, bounds=bounds)
 
 for i in range(N):
     ps_particle = np.random.rand(2)
@@ -45,4 +45,6 @@ acs = np.zeros((sim.N, 2))
 acs[:, 1] = g*np.ones(sim.N)
 
 # sim.animate(acs, cmap=cmap_temperature)
-sim.animate_blit(cmap=cmap_temperature)
+# sim.animate_blit(cmap=cmap_temperature)
+
+sim.save_animation('./test.mp4', acs, cmap=cmap_temperature)

@@ -29,9 +29,15 @@ def cmap_linear(color1, color2, name, N=256):
 
 cmap_temperature = cmap_linear(blue, red, 'temperature')
 
+def moving_average(a, n=10) :
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret / n
+
+
 class Sim(Particles):
 
-    def __init__(self, fps, spf=1, geometry='box2D', bounds={}, collisions='KDTree'):
+    def __init__(self, fps, spf=1, T=1, geometry='box2D', bounds={}, collisions='KDTree'):
 
         print('Initialising simulation...')
 
@@ -48,6 +54,8 @@ class Sim(Particles):
 
         self.dt = 1/fps/spf  # s
         self._t = 0
+        self.T = T  # s
+        self.NT = T/self.dt
 
         self.bounds = bounds
 
@@ -116,6 +124,9 @@ class Sim(Particles):
 
         # Sim parameters
         print('Total number of particles: ', self.N)
+        print('Total animation time: {:.2f} s'.format(self.T))
+        print('Total animation frames: {:.2f}'.format(self.NT))
+        print('FPS: {}'.format(self.fps))
         print('Particle packing: {:.4f} %'.format(self.collective_volume()/self.geometry.get_volume()*100))
         print('Running simulation...')
 
@@ -195,17 +206,21 @@ class Sim(Particles):
             cmap=cmap
         )
 
-    def animate(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4)):
+    def animate(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4), show=True, **kwargs):
 
         fig, axes, s, depth = self._animation_init_base_function(figsize=figsize, dpi=dpi)
         
         def animation(i):
             self._animation_base_function(axes['main'], acs, depth, s, cmap)
 
-        anim = FuncAnimation(fig, animation, interval=interval)
-        plt.show()
+        anim = FuncAnimation(fig, animation, interval=interval, save_count=self.NT)
+        if show:
+            plt.show()
+            return None
+        else:
+            return anim
 
-    def animate_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4), **kwargs):
+    def animate_pVT(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(3, 4), show=True, **kwargs):
 
         fig, axes, s, depth = self._animation_init_base_function(figsize=figsize, dpi=dpi, mode='pVT')
 
@@ -218,6 +233,7 @@ class Sim(Particles):
                 self._temperature = self._temperature[1:]
 
             p_norm = np.array(self._pressure)
+            p_norm = moving_average(p_norm)
             if not np.amax(p_norm) == 0:
                 p_norm /= np.amax(p_norm)
             V_norm = np.array(self._volume, dtype=float)
@@ -232,9 +248,29 @@ class Sim(Particles):
             axes['pVT'].plot(T_norm, label='T')
             # axes['pVT'].legend(loc=0)
 
-        anim = FuncAnimation(fig, animation, interval=interval)
-        plt.show()
+        anim = FuncAnimation(fig, animation, interval=interval, save_count=self.NT)
+        if show:
+            plt.show()
+            return None
+        else:
+            return anim
 
+    # Saving animation
+    def save_animation(self, outFile, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4), show=True, pVT=False, **kwargs):
+
+        if pVT:
+            anim = self.animate_pVT(acs, cmap, interval, dpi, figsize, show=False)
+        else:
+            anim = self.animate(acs, cmap, interval, dpi, figsize, show=False)
+
+        anim.save(
+            filename=outFile,
+            fps=self.fps,
+            extra_args=['-vcodec', 'libx264'],
+            dpi=dpi,
+        )
+
+    # Animation blitting
     def animate_blit(self, acs=None, cmap='bwr', interval=1, dpi=150, figsize=(4, 4), **kwargs):
 
         # Canvas initialisation
